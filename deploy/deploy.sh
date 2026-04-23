@@ -64,6 +64,11 @@ case "$cmd" in
     dc up -d
     site="$(grep -E '^FRAPPE_SITE_NAME_HEADER=' "$ENV_FILE" | cut -d= -f2-)"
     dc exec backend bench --site "$site" migrate
+    # Do NOT run `bench build` at runtime — it writes to the container's writable layer
+    # and only backend sees the new files, while nginx (frontend) serves from its own apps/.
+    # See https://github.com/frappe/frappe_docker/issues/1883
+    # Instead, restore assets.json from the image so it matches the image's pre-built files.
+    bash "$(dirname "$0")/fixasset.sh"
     ;;
   logs)    render; dc logs -f --tail=100 ;;
   ps)      render; dc ps ;;
